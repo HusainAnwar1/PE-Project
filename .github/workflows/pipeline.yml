@@ -1,0 +1,40 @@
+name: Platform Engineering Pipeline
+
+on:
+  push:
+    branches: ["main"]
+
+jobs:
+
+  ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - run: pip install -r requirements.txt
+      - run: pytest
+
+  build:
+    needs: ci
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: docker build -t platform-demo .
+
+  provision:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: hashicorp/setup-terraform@v2
+      - run: terraform -chdir=terraform init
+      - run: terraform -chdir=terraform apply -auto-approve
+
+  deploy:
+    needs: provision
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Application deployed!"
